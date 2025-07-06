@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ConfigLoader:
     def __init__(self):
         try:
@@ -17,7 +18,7 @@ class ConfigLoader:
         except Exception as e:
             logger.error(f"Failed to initialize ConfigLoader: {e}")
             raise
-    
+
     def __getitem__(self, key):
         try:
             return self.config[key]
@@ -26,23 +27,24 @@ class ConfigLoader:
             available_keys = list(self.config.keys())
             logger.error(f"Available keys: {available_keys}")
             raise KeyError(f"Configuration key '{key}' not found. Available: {available_keys}")
-    
+
     def get(self, key, default=None):
         """Get config value with optional default."""
         return self.config.get(key, default)
-
 
 
 class ModelLoader(BaseModel):
     model_provider: Literal["groq", "openai"] = "groq"
     config: Optional[ConfigLoader] = Field(default=None, exclude=True)
 
-    def model_post_init(self, __context: Any) -> None:
-        self.config = ConfigLoader()
-    
+    def __init__(self, **data):
+        if 'config' not in data or data['config'] is None:
+            data['config'] = ConfigLoader()
+        super().__init__(**data)
+
     class Config:
         arbitrary_types_allowed = True
-    
+
     def load_llm(self):
         """
         Load and return the LLM model.
@@ -53,12 +55,11 @@ class ModelLoader(BaseModel):
             print("Loading LLM from Groq..............")
             groq_api_key = os.getenv("GROQ_API_KEY")
             model_name = self.config["llm"]["groq"]["model_name"]
-            llm=ChatGroq(model=model_name, api_key=groq_api_key)
+            llm = ChatGroq(model=model_name, api_key=groq_api_key)
         elif self.model_provider == "openai":
             print("Loading LLM from OpenAI..............")
             openai_api_key = os.getenv("OPENAI_API_KEY")
             model_name = self.config["llm"]["openai"]["model_name"]
             llm = ChatOpenAI(model_name=model_name, api_key=openai_api_key)
-        
+
         return llm
-    
