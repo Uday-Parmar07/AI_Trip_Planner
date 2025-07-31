@@ -8,6 +8,8 @@ uvicorn
 pydantic
 httpx
 requests
+flask
+flask-cors
 langchain_google_community
 langchain_tavily
 langchain_groq

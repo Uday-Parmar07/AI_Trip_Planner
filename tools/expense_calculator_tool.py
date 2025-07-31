@@ -16,9 +16,18 @@ class CalculatorTool:
             return self.calculator.multiply(float(price_per_night), float(total_days))
         
         @tool
-        def calculate_total_expense(*costs: float) -> float:
-            """Calculate total trip expense by adding up multiple individual costs."""
-            return self.calculator.calculate_total(*costs)
+        def calculate_total_expense(costs: List[str]) -> float:
+            """Calculate total trip expense by adding up multiple individual costs.
+            
+            Args:
+                costs: List of cost amounts as strings that will be converted to floats
+                
+            Returns:
+                float: Total sum of all costs
+            """
+            # Convert string costs to floats
+            float_costs = [float(cost) for cost in costs]
+            return self.calculator.calculate_total(*float_costs)
 
         @tool
         def calculate_daily_expense_budget(total_cost: str, days: str) -> float:

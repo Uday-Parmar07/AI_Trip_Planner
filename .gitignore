@@ -10,3 +10,16 @@ wheels/
 .venv
 env/
 .env
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React build output
+frontend/build/
+
+# Package lock files (optional - you may want to track these)
+# package-lock.json
+# yarn.lock

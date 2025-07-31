@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start React Frontend",
+			"type": "shell",
+			"command": "npm start",
+			"group": "build",
+			"isBackground": true,
+			"options": {
+				"cwd": "d:/Projects/AI_Trip_Planner/frontend"
+			},
+			"problemMatcher": []
+		}
+	]
+}

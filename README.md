@@ -1,105 +1,298 @@
 
-# AI based Trip Planner - Trippy
+# 🌍 AI Trip Planner
 
-AI Trip Planning Agent is a modular, LLM-powered travel assistant that generates personalized, multi-day travel itineraries based on user preferences like destination, budget, number of days, and interests. Built using Streamlit, LangChain, and Groq's LLM, the app follows a scalable, agent-based architecture with reusable prompt libraries, custom tools (e.g., weather info), and centralized configuration handling. It outputs structured day-wise plans with suggested activities, food spots, and landmarks, providing a real-world example of using generative AI in a travel context.
+An intelligent, AI-powered travel planning application that generates personalized, comprehensive travel itineraries using advanced language models. The system leverages LangChain and Groq's LLM capabilities to create detailed day-by-day travel plans based on user preferences including destination, budget, duration, travel style, and personal interests.
+
+## 🎯 Overview
+
+AI Trip Planner is built with a modern, scalable architecture featuring a React frontend, Flask unified application layer, and FastAPI backend. The application employs an agent-based design pattern with modular components, reusable prompt libraries, and custom tools to deliver both mainstream and off-beat travel recommendations.
+
+### Key Capabilities
+
+- **Intelligent Itinerary Generation**: Creates detailed day-by-day travel plans with activities, dining, and accommodation recommendations
+- **Dual Planning Approach**: Provides both mainstream tourist attractions and unique, off-the-beaten-path experiences
+- **Comprehensive User Interface**: Modern React frontend with intuitive form inputs and structured result display
+- **Real-time Processing**: Seamless communication between frontend and AI backend for immediate trip planning
+- **Adaptive Recommendations**: Tailors suggestions based on group size, travel style, budget constraints, and personal interests
+
+## 🏗️ Architecture & Design
+
+### System Architecture
+The application follows a three-tier architecture:
+
+1. **Presentation Layer**: React-based frontend providing an intuitive user interface
+2. **Application Layer**: Flask unified application serving static content and API proxy functionality  
+3. **Service Layer**: FastAPI backend with LangChain integration for AI processing
+
+### Design Principles
+
+- **Modularity**: Component-based architecture with clear separation of concerns
+- **Scalability**: Agent-based design allowing easy extension with additional tools and capabilities
+- **Maintainability**: Centralized configuration management and structured prompt libraries
+- **Extensibility**: Plugin architecture supporting custom tools for weather, currency conversion, and expense calculation
+
+## 💼 Business Value
+
+**For Travel Agencies**
+- Automates itinerary creation, reducing planning time from hours to minutes
+- Provides consistent, high-quality travel recommendations
+- Enables handling of multiple client requests simultaneously
+
+**For Individual Travelers**
+- Delivers personalized travel experiences based on specific preferences
+- Offers both popular attractions and unique local experiences
+- Provides comprehensive budget planning and expense estimation
+
+**For Developers**
+- Demonstrates practical LLM implementation in a real-world application
+- Showcases modern web development practices with React and FastAPI
+- Provides a foundation for AI-powered service applications
+
+## 🛠️ Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 18, CSS3, Axios | Interactive user interface with responsive design |
+| **Application** | Flask, CORS | Unified app serving static content and API proxy |
+| **Backend** | FastAPI, Python 3.10+ | REST API and AI agent orchestration |
+| **AI Engine** | LangChain, Groq LLM | Natural language processing and reasoning |
+| **Tools** | Custom Python modules | Weather data, currency conversion, expense calculation |
+| **Configuration** | YAML, Environment variables | Centralized application configuration |
+| **Development** | Git, npm, pip | Version control and package management |
+
+## ✨ Core Features
+
+### Intelligent Trip Planning
+- **Personalized Itineraries**: Generates custom day-by-day travel plans based on user preferences
+- **Dual Perspective Planning**: Offers both mainstream tourist attractions and unique local experiences
+- **Budget Management**: Calculates comprehensive trip costs including accommodation, activities, and dining
+- **Group Optimization**: Tailors recommendations for solo travelers, couples, families, or groups
+
+### Advanced Functionality
+- **Real-time Weather Integration**: Provides weather forecasts for planned destinations
+- **Currency Conversion**: Automatic currency conversion for international travel planning
+- **Safety Ratings**: Includes safety assessments for accommodations and destinations
+- **Dietary Preferences**: Accommodates vegetarian, non-vegetarian, and local cuisine preferences
+
+### User Experience
+- **Responsive Design**: Optimized for desktop and mobile devices
+- **Intuitive Interface**: Clean, modern design with guided input process
+- **Real-time Processing**: Immediate AI-generated responses with loading indicators
+- **Comprehensive Results**: Structured display of complete travel plans with detailed information
 
 
-Why This Project Is Useful
+## 🔧 Configuration
 
-1. Automates Personalized Itinerary Creation
-Saves time and effort for users or travel agencies by generating complete travel plans tailored to user preferences.
+### Required Environment Variables
 
-2. Real-World Use of LLMs
+Create a `.env` file in the root directory with the following variables:
 
-Demonstrates how Large Language Models (LLMs) can be applied beyond chat — in structured planning and decision-making.
+```env
+# Required API Keys
+GROQ_API_KEY=your_groq_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key_here
+FOURSQUARE_API_KEY=your_foursquare_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
 
-3. Scalable & Modular Architecture
-
-The project uses an agent-based structure, reusable prompts, and modular utilities, making it easy to extend with more tools (e.g., cost estimation, hotel APIs).
-
-4. User-Friendly Interface
-
-Built with Streamlit, allowing users to interact via a simple form-based UI — no technical knowledge needed.
-
-5. Adaptable for Other Domains
-
-The same architecture (agent + tools + prompt orchestration) can be reused in other domains like health advice, education planning, etc
-
-
-| Component       | Tech Used                          | Purpose                                  |
-| --------------- | ---------------------------------- | ---------------------------------------- |
-| **Frontend**    | Streamlit                          | Interactive user interface               |
-| **LLM Engine**  | Groq (via LangChain)               | Text generation and reasoning            |
-| **Framework**   | LangChain                          | Prompt chaining, tool integration        |
-| **Prompt Mgmt** | Jinja2 templates                   | Dynamic prompt formatting                |
-| **Tooling**     | Custom tools (e.g., weather agent) | Extends LLM functionality                |
-| **Config Mgmt** | dotenv, config files               | Centralized environment setup            |
-| **Logging**     | Python logger                      | Debugging and monitoring                 |
-| **Testing**     | Pytest (optional)                  | Basic functionality verification         |
-| **Packaging**   | setup.py, pyproject.toml           | Installable and reproducible environment |
-
-
-
-
-## Features
-
-- Provides offbeat and personalized travel plans for the selected location, focusing on unique and local experiences rather than generic tourist spots.
-
-- Recommends hotels based on the travel group type — whether the user is a couple, family, group of friends, or solo traveler.
-
-- Includes safety ratings for both hotels and places, allowing users to evaluate risk and make safer travel decisions.
-
-- Calculates an estimated total cost and per-day cost of the trip based on the number of days, people, accommodation, and activities.
-
-- Lists dining options for both vegetarian and non-vegetarian preferences, along with highlighting the food specialities of the location.
-
-
-## Environment Variables
-
-To run this project, you will need to add the following environment variables to your .env file
-
-`OPEN_API_KEY=your_open_api_key_here`
-
-`GROQ_API_KEY=your_groq_here`
-
-`GOOGLE_API_KEY=your_google_api_key_here`
-
-`GPLACE_API_KEY=your_gplace_api_key_here`
-
-`FOURSQUARE_API_KEY=your_foursquare_api_key_here`
-
-`TAVILAY_API_KEY=your_tavilay_api_key_here`
-
-`OPENWEATHER_API_KEY=your_openweather_api_key_here`
-
-`EXCHANGE_RATE_API_KEY=your_exchange_rate_api_key_here`
-
-
-
-## Run Locally
-
-Clone the project
-
-```bash
-  git clone https://github.com/Uday-Parmar07/AI_Trip_Planner.git
+# Optional API Keys
+OPEN_API_KEY=your_openai_api_key_here
 ```
 
-Go to the project directory
+### API Key Setup Guide
 
+1. **Groq API**: Sign up at [Groq Console](https://console.groq.com/) for LLM access
+2. **OpenWeather API**: Register at [OpenWeatherMap](https://openweathermap.org/api) for weather data
+3. **Exchange Rate API**: Get a key from [ExchangeRate-API](https://exchangerate-api.com/)
+4. **Foursquare API**: Create an account at [Foursquare Developer](https://developer.foursquare.com/)
+5. **Tavily API**: Register at [Tavily](https://tavily.com/) for web search capabilities
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python**: Version 3.10 or higher
+- **Node.js**: Version 16 or higher
+- **npm**: Latest version (comes with Node.js)
+
+### Installation
+
+1. **Clone the Repository**
 ```bash
-  cd AI_Trip_Planner
+git clone https://github.com/Uday-Parmar07/AI_Trip_Planner.git
+cd AI_Trip_Planner
 ```
 
-Install dependencies
-
+2. **Backend Setup**
 ```bash
-  pip install -r requirements.txt
+# Create and activate virtual environment
+python -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env file with your API keys
 ```
 
-Start the server
+3. **Frontend Setup**
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+### Running the Application
+
+#### Unified Application (Recommended)
 
 ```bash
-  streamlit run app.py
-  uvicorn main:app --reload --port 8000
+# Start the unified application (serves both frontend and API)
+python unified_app.py
 ```
+
+The application will be available at `http://localhost:3000`
+
+#### Development Mode (Separate Services)
+
+```bash
+# Terminal 1: Start FastAPI backend
+python main_simple.py
+
+# Terminal 2: Start React development server
+cd frontend
+npm start
+```
+
+- **FastAPI Backend**: `http://localhost:8002`
+- **React Frontend**: `http://localhost:3000`
+
+### Health Check
+
+Verify the application is running correctly:
+```bash
+curl http://localhost:3000/api/health
+```
+
+## 📁 Project Structure
+
+```
+AI_Trip_Planner/
+├── agent/                  # AI agent and workflow logic
+│   ├── __init__.py
+│   └── agentic_workflow.py
+├── config/                 # Configuration files
+│   ├── __init__.py
+│   └── config.yaml
+├── frontend/               # React frontend application
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   └── README.md
+├── prompt_library/         # AI prompt templates
+│   ├── __init__.py
+│   └── prompts.py
+├── tools/                  # Custom AI tools
+│   ├── __init__.py
+│   ├── currency_conversion_tool.py
+│   ├── expense_calculator_tool.py
+│   ├── place_search_tool.py
+│   └── weather_info_tool.py
+├── utils/                  # Utility functions
+│   ├── __init__.py
+│   ├── calculator.py
+│   ├── config_loader.py
+│   ├── currency_converter.py
+│   ├── model_loader.py
+│   ├── place_info_search.py
+│   └── weather_info.py
+├── main_simple.py          # FastAPI backend server
+├── unified_app.py          # Flask unified application
+├── requirements.txt        # Python dependencies
+├── setup.py               # Package configuration
+└── README.md              # Project documentation
+```
+
+## 🔌 API Documentation
+
+### Core Endpoints
+
+#### POST `/api/query`
+Generate a travel itinerary based on user preferences.
+
+**Request Body:**
+```json
+{
+  "question": "Plan a 5-day trip to Paris for 2 people with a budget of $2000"
+}
+```
+
+**Response:**
+```json
+{
+  "answer": "Detailed travel itinerary...",
+  "processing_time": 3.45,
+  "timestamp": "2025-07-31T10:30:00Z"
+}
+```
+
+#### GET `/api/health`
+Check application health status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "frontend": "serving",
+  "backend_status": 200,
+  "unified_app": true
+}
+```
+
+## 🤝 Contributing
+
+We welcome contributions to improve the AI Trip Planner! Please follow these guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Follow code standards** and include appropriate comments
+3. **Add tests** for new functionality
+4. **Update documentation** as needed
+5. **Submit a pull request** with a clear description of changes
+
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements.txt
+pip install pytest black flake8
+
+# Run tests
+pytest
+
+# Format code
+black .
+
+# Lint code
+flake8 .
+```
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support, please:
+- **Create an issue** on GitHub for bug reports or feature requests
+- **Check existing issues** before creating new ones
+- **Provide detailed information** including error messages and steps to reproduce
+
+## 🙏 Acknowledgments
+
+- **LangChain** for providing the AI framework
+- **Groq** for fast LLM inference
+- **React** community for frontend development resources
+- **FastAPI** for the high-performance backend framework
 

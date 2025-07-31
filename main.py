@@ -57,22 +57,28 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add middleware
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for simplicity; adjust as needed
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "*"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 @app.get("/")
 async def root():
-    return {"message": "AI Agent API is running"}
+    return {"message": "AI Agent API is running", "version": "1.0.0", "status": "healthy"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now()}
+    return {"status": "healthy", "timestamp": datetime.now(), "version": "1.0.0"}
 
 @app.post("/query", response_model=QueryResponse)
 async def query_travel_agent(query: QueryRequest):
@@ -112,4 +118,4 @@ async def query_travel_agent(query: QueryRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8002)
