@@ -47,13 +47,24 @@ const parseAIResponse = (text) => {
   let list = [];
   let table = [];
 
+  const stripMarkdown = (value) =>
+    value
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[(.*?)\]\([^)]*\)/g, '$1')
+      .trim();
+
+  const shouldHighlight = (value) =>
+    /[$€₹]/.test(value) || /^\s*(morning|afternoon|evening|night|arrival|departure|check[-\s]?in|check[-\s]?out)/i.test(value);
+
   const flushParagraph = () => {
     if (!paragraph.length) return;
     const content = paragraph.join(' ');
     blocks.push({
       type: 'paragraph',
       content,
-      highlight: /[$€₹]/.test(content)
+      highlight: shouldHighlight(content)
     });
     paragraph = [];
   };
@@ -86,50 +97,52 @@ const parseAIResponse = (text) => {
   };
 
   lines.forEach((rawLine) => {
-    const line = rawLine.trim();
+    const trimmed = rawLine.trim();
 
-    if (!line) {
+    if (!trimmed) {
       flushParagraph();
       flushList();
       flushTable();
       return;
     }
 
-    if (line.startsWith('## ')) {
+    if (/^#{2,}\s*/.test(trimmed)) {
       flushParagraph();
       flushList();
       flushTable();
-      blocks.push({ type: 'heading', content: line.substring(3).trim() });
+      const headingContent = stripMarkdown(trimmed.replace(/^#+\s*/, ''));
+      if (/^Day\s+\d+/i.test(headingContent)) {
+        blocks.push({ type: 'day', content: headingContent });
+      } else if (trimmed.startsWith('###')) {
+        blocks.push({ type: 'subheading', content: headingContent });
+      } else {
+        blocks.push({ type: 'heading', content: headingContent });
+      }
       return;
     }
 
-    if (line.startsWith('### ')) {
+    const cleanedLine = stripMarkdown(trimmed);
+
+    if (/^Day\s+\d+/i.test(cleanedLine)) {
       flushParagraph();
       flushList();
       flushTable();
-      blocks.push({ type: 'subheading', content: line.substring(4).trim() });
+      blocks.push({ type: 'day', content: cleanedLine });
       return;
     }
 
-    if (/^Day\s+\d+/i.test(line)) {
-      flushParagraph();
-      flushList();
-      flushTable();
-      blocks.push({ type: 'day', content: line });
-      return;
-    }
-
-    if (line.startsWith('- ') || line.startsWith('* ')) {
+    if (/^[-*]\s+/.test(trimmed)) {
       flushParagraph();
       flushTable();
-      list.push(line.substring(2).trim());
+      const itemContent = stripMarkdown(trimmed.replace(/^[-*]\s+/, ''));
+      list.push({ content: itemContent, highlight: shouldHighlight(itemContent) });
       return;
     }
 
-    if (line.includes('|')) {
-      const cells = line
+    if (trimmed.includes('|')) {
+      const cells = trimmed
         .split('|')
-        .map((cell) => cell.trim())
+        .map((cell) => stripMarkdown(cell))
         .filter(Boolean);
 
       if (cells.length > 1) {
@@ -142,7 +155,7 @@ const parseAIResponse = (text) => {
 
     flushList();
     flushTable();
-    paragraph.push(line);
+    paragraph.push(cleanedLine);
   });
 
   flushParagraph();
@@ -250,8 +263,13 @@ const App = () => {
       question += ` with a total budget of ${budget}`;
     }
 
-    question += `. Prefer ${accommodation} accommodations and ${transportation} as the primary transport.`;
-    question += ' Provide a concise itinerary, key logistics, and budget breakdown focusing on clarity and brevity.';
+      question += `. Prefer ${accommodation} accommodations and ${transportation} as the primary transport.`;
+      question += ' Provide a concise itinerary, key logistics, and budget breakdown focusing on clarity and brevity.';
+      if (budget) {
+        question += ' Ensure hotel suggestions respect the stated budget and include indicative nightly pricing.';
+      } else {
+        question += ' Include indicative nightly pricing for recommended hotels to show expected costs.';
+      }
 
     return question;
   };
@@ -640,11 +658,14 @@ const App = () => {
                             if (block.type === 'list') {
                               return (
                                 <Box component="ul" key={`block-${index}`} className="ai-list">
-                                  {block.items.map((item, itemIndex) => (
-                                    <Box component="li" key={`block-${index}-item-${itemIndex}`}>
-                                      {item}
-                                    </Box>
-                                  ))}
+                                  {block.items.map((item, itemIndex) => {
+                                    const itemClass = item.highlight ? 'ai-list-item ai-list-item--highlight' : 'ai-list-item';
+                                    return (
+                                      <Box component="li" className={itemClass} key={`block-${index}-item-${itemIndex}`}>
+                                        {item.content}
+                                      </Box>
+                                    );
+                                  })}
                                 </Box>
                               );
                             }
