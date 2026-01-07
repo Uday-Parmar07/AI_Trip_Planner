@@ -6,4 +6,4 @@ llm:
   groq:
     provider: "groq"
     api_key: "your_groq_api_key"
-    model_name: "llama3-70b-8192"
+    model_name: "meta-llama/llama-4-scout-17b-16e-instruct"

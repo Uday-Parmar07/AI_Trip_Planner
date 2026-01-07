@@ -12,6 +12,9 @@ from agent.agentic_workflow import GraphBuilder
 # Load environment variables
 load_dotenv()
 
+# Allow selecting model provider via env var (defaults to groq)
+MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "groq")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,12 +40,17 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initializing AI agent...")
     try:
-        app.state.graph_builder = GraphBuilder(model_provider="groq")
+        app.state.graph_builder = GraphBuilder(model_provider=MODEL_PROVIDER)
         app.state.react_app = app.state.graph_builder()
         logger.info("AI agent initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize AI agent: {e}")
-        raise
+        # If the AI components fail to initialize (for example a model
+        # is decommissioned or API keys are missing) keep the server
+        # running so health checks work and surface a helpful message
+        # when clients attempt to use `/query`.
+        logger.warning(f"Failed to initialize AI agent: {e}")
+        app.state.graph_builder = None
+        app.state.react_app = None
     
     yield
     
@@ -57,37 +65,31 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5000",
-        "http://127.0.0.1:5000",
-        "*"
-    ],
+    allow_origins=["*"],  # Allow all origins for simplicity; adjust as needed
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.get("/")
 async def root():
-    return {"message": "AI Agent API is running", "version": "1.0.0", "status": "healthy"}
+    return {"message": "AI Agent API is running"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now(), "version": "1.0.0"}
+    return {"status": "healthy", "timestamp": datetime.now()}
 
-@app.post("/query", response_model=QueryResponse)
-async def query_travel_agent(query: QueryRequest):
-    """
-    Process a question using the AI agent with multiple tools.
-    """
+async def _process_query(query: QueryRequest) -> QueryResponse:
+    """Shared query handler used by both /query and /api/query endpoints."""
     start_time = datetime.now()
     logger.info(f"Processing query: {query.question[:100]}...")
     
+    if not getattr(app.state, "react_app", None):
+        raise HTTPException(status_code=503, detail="AI agent not initialized or unavailable")
+
     try:
         # Process the query
         messages = {"messages": [query.question]}
@@ -113,9 +115,27 @@ async def query_travel_agent(query: QueryRequest):
         raise HTTPException(status_code=400, detail="Invalid input provided")
         
     except Exception as e:
-        logger.error(f"Error processing query: {e}")
+        error_text = str(e)
+        logger.error(f"Error processing query: {error_text}")
+        if "model_decommissioned" in error_text:
+            raise HTTPException(
+                status_code=503,
+                detail="Configured LLM model is unavailable. Please update the backend configuration."
+            )
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/query", response_model=QueryResponse)
+async def query_travel_agent(query: QueryRequest):
+    """Process travel planning requests for legacy clients."""
+    return await _process_query(query)
+
+
+@app.post("/api/query", response_model=QueryResponse)
+async def query_travel_agent_v1(query: QueryRequest):
+    """Process travel planning requests for frontend proxy calls."""
+    return await _process_query(query)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
