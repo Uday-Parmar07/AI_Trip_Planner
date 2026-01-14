@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   AppBar,
@@ -12,6 +12,13 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   MenuItem,
   Paper,
   Stack,
@@ -24,6 +31,7 @@ import {
 } from '@mui/material';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import './index.css';
 
 const defaultForm = {
@@ -165,34 +173,69 @@ const parseAIResponse = (text) => {
   return blocks;
 };
 
+const formatGroupSize = (count) => {
+  if (count == null || Number.isNaN(count)) {
+    return 'Group size TBD';
+  }
+
+  return `${count} ${count === 1 ? 'person' : 'people'}`;
+};
+
 const App = () => {
   const [formData, setFormData] = useState(defaultForm);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [trips, setTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [tripsError, setTripsError] = useState(null);
+  const [showTripsDialog, setShowTripsDialog] = useState(false);
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem('trip-history');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setTrips(parsed);
+  const fetchTrips = useCallback(async () => {
+    setTripsLoading(true);
+    setTripsError(null);
+
+    try {
+      const response = await axios.get('/api/trips', { params: { limit: 20 } });
+      const normalizedTrips = (response.data || []).map((trip) => {
+        const createdAtRaw = trip.created_at ? new Date(trip.created_at) : null;
+        let createdAt = null;
+        if (createdAtRaw && typeof createdAtRaw.getTime === 'function' && !Number.isNaN(createdAtRaw.getTime())) {
+          createdAt = createdAtRaw;
         }
-      } catch (err) {
-        console.warn('Failed to parse stored trips', err);
-      }
+
+        return {
+          id: trip.id,
+          origin: trip.origin,
+          destination: trip.destination,
+          travelDates: trip.travel_dates,
+          numberOfPeople: trip.number_of_people,
+          duration: trip.duration,
+          budget: trip.budget,
+          accommodation: trip.accommodation,
+          tripType: trip.trip_type,
+          transportation: trip.transportation,
+          excerpt: trip.excerpt,
+          answer: trip.answer,
+          processingTime: trip.processing_time,
+          createdAt
+        };
+      });
+
+      setTrips(normalizedTrips);
+      return normalizedTrips;
+    } catch (err) {
+      console.error('Failed to fetch trips:', err);
+      setTripsError('Unable to load saved trips right now.');
+      return [];
+    } finally {
+      setTripsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (trips.length) {
-      window.localStorage.setItem('trip-history', JSON.stringify(trips));
-    } else {
-      window.localStorage.removeItem('trip-history');
-    }
-  }, [trips]);
+    fetchTrips();
+  }, [fetchTrips]);
 
   const theme = useMemo(
     () =>
@@ -274,6 +317,25 @@ const App = () => {
     return question;
   };
 
+  const handleTripsButtonClick = useCallback(() => {
+    setShowTripsDialog(true);
+    fetchTrips();
+  }, [fetchTrips]);
+
+  const handleTripsDialogClose = useCallback(() => {
+    setShowTripsDialog(false);
+  }, []);
+
+  const navItems = useMemo(
+    () => [
+      { label: 'Home' },
+      { label: 'Trips', action: handleTripsButtonClick },
+      { label: 'About' },
+      { label: 'Contact' }
+    ],
+    [handleTripsButtonClick]
+  );
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -282,9 +344,20 @@ const App = () => {
 
     try {
       const apiUrl = '/api/query';
+      const parsedNumberOfPeople = parseInt(formData.numberOfPeople, 10);
+      const tripDetailsPayload = Object.entries({
+        ...formData,
+        numberOfPeople: Number.isNaN(parsedNumberOfPeople) ? undefined : parsedNumberOfPeople
+      }).reduce((acc, [key, value]) => {
+        if (value === '' || value == null) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      }, {});
       const response = await axios.post(
         apiUrl,
-        { question: generateTripQuestion() },
+        { question: generateTripQuestion(), tripDetails: tripDetailsPayload },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -304,16 +377,7 @@ const App = () => {
       };
 
       setResult(enhancedResult);
-
-      const newTrip = {
-        id: Date.now(),
-        createdAt: enhancedResult.timestamp,
-        form: { ...formData },
-        excerpt: response.data.answer?.split('\n').find((line) => line.trim()) || 'Itinerary ready',
-        processingTime: enhancedResult.processingTime
-      };
-
-      setTrips((prev) => [newTrip, ...prev].slice(0, 10));
+      await fetchTrips();
     } catch (err) {
       console.error('API Error:', err);
 
@@ -353,9 +417,15 @@ const App = () => {
               </Box>
             </Stack>
             <Stack direction="row" spacing={2} sx={{ display: { xs: 'none', md: 'flex' } }}>
-              {['Home', 'Trips', 'About', 'Contact'].map((item) => (
-                <Button key={item} color="inherit" size="small" sx={{ color: 'text.secondary' }}>
-                  {item}
+              {navItems.map((item) => (
+                <Button
+                  key={item.label}
+                  color="inherit"
+                  size="small"
+                  onClick={item.action}
+                  sx={{ color: 'text.secondary' }}
+                >
+                  {item.label}
                 </Button>
               ))}
             </Stack>
@@ -719,32 +789,45 @@ const App = () => {
                     <Divider />
 
                     <Stack spacing={2} sx={{ flexGrow: 1, overflow: 'auto', pr: 1 }}>
-                      {trips.length === 0 && (
+                      {tripsError && (
+                        <Alert severity="warning" variant="outlined">
+                          {tripsError}
+                        </Alert>
+                      )}
+
+                      {tripsLoading && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                          <CircularProgress size={24} />
+                        </Box>
+                      )}
+
+                      {!tripsLoading && trips.length === 0 && (
                         <Typography variant="body2" color="text.secondary">
                           Plan a trip to see it appear in your saved list.
                         </Typography>
                       )}
 
-                      {trips.map((trip) => (
-                        <Box key={trip.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
-                          <Stack spacing={1}>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                {trip.form.origin} → {trip.form.destination}
+                      {!tripsLoading &&
+                        trips.map((trip) => (
+                          <Box key={trip.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
+                            <Stack spacing={1}>
+                              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                  {(trip.origin || 'Unknown origin') + ' → ' + (trip.destination || 'Unknown destination')}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {trip.createdAt ? trip.createdAt.toLocaleDateString() : 'New'}
+                                </Typography>
+                              </Stack>
+                              <Typography variant="body2" color="text.secondary">
+                                {(trip.travelDates && trip.travelDates !== '') ? trip.travelDates : 'Dates TBD'} • {formatGroupSize(trip.numberOfPeople)}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(trip.createdAt).toLocaleDateString()}
+                              <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                                {trip.excerpt || 'Itinerary ready'}
                               </Typography>
                             </Stack>
-                            <Typography variant="body2" color="text.secondary">
-                              {trip.form.travelDates || 'Dates TBD'} • {trip.form.numberOfPeople} {Number(trip.form.numberOfPeople) === 1 ? 'person' : 'people'}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                              {trip.excerpt}
-                            </Typography>
-                          </Stack>
-                        </Box>
-                      ))}
+                          </Box>
+                        ))}
                     </Stack>
                   </Stack>
                 </Paper>
@@ -753,6 +836,57 @@ const App = () => {
           </Grid>
         </Container>
       </Box>
+
+      <Dialog open={showTripsDialog} onClose={handleTripsDialogClose} fullWidth maxWidth="md">
+        <DialogTitle>Saved Trips</DialogTitle>
+        <DialogContent dividers sx={{ px: 0 }}>
+          {tripsError && (
+            <Alert severity="warning" variant="outlined" sx={{ mx: 3, mb: 2 }}>
+              {tripsError}
+            </Alert>
+          )}
+
+          {tripsLoading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : trips.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ px: 3, py: 1 }}>
+              No saved itineraries yet. Generate a plan to see it here.
+            </Typography>
+          ) : (
+            trips.map((trip, index) => (
+              <Accordion key={trip.id} defaultExpanded={index === 0} disableGutters>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 3 }}>
+                  <Stack spacing={0.5} sx={{ width: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {(trip.origin || 'Unknown origin') + ' → ' + (trip.destination || 'Unknown destination')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {(trip.travelDates && trip.travelDates !== '') ? trip.travelDates : 'Dates TBD'} • {formatGroupSize(trip.numberOfPeople)}
+                    </Typography>
+                  </Stack>
+                </AccordionSummary>
+                <AccordionDetails sx={{ px: 3 }}>
+                  <Stack spacing={1.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      Generated {trip.createdAt ? trip.createdAt.toLocaleString() : 'recently'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                      {trip.answer}
+                    </Typography>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
+            ))
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleTripsDialogClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 };

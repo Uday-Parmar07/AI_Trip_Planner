@@ -97,6 +97,15 @@ TAVILY_API_KEY=your_tavily_api_key_here
 
 # Optional API Keys
 OPEN_API_KEY=your_openai_api_key_here
+
+# Database (optional)
+DATABASE_URL=postgresql+psycopg://user:password@host:5432/database_name
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+DATABASE_POOL_TIMEOUT=30
+DATABASE_POOL_RECYCLE=1800
+DATABASE_SSL_MODE=require
+DATABASE_SSL_ROOT_CERT=/path/to/ca.pem
 ```
 
 ### API Key Setup Guide
@@ -106,6 +115,13 @@ OPEN_API_KEY=your_openai_api_key_here
 3. **Exchange Rate API**: Get a key from [ExchangeRate-API](https://exchangerate-api.com/)
 4. **Foursquare API**: Create an account at [Foursquare Developer](https://developer.foursquare.com/)
 5. **Tavily API**: Register at [Tavily](https://tavily.com/) for web search capabilities
+
+### Database Configuration
+
+- Set `DATABASE_URL` to point at your production database (PostgreSQL recommended). The backend automatically upgrades bare `postgresql://` URLs to use the psycopg driver and enables connection pooling.
+- Optional pool controls are available through `DATABASE_POOL_SIZE`, `DATABASE_MAX_OVERFLOW`, `DATABASE_POOL_TIMEOUT`, and `DATABASE_POOL_RECYCLE` for tuning under load.
+- For hosted databases that require TLS, configure `DATABASE_SSL_MODE` (for example `require` or `verify-full`) and optionally `DATABASE_SSL_ROOT_CERT` with the path to your CA bundle.
+- If no `DATABASE_URL` is provided the app falls back to a local SQLite file at `data/trips.db` for development convenience.
 ## 🚀 Quick Start
 
 ### Prerequisites
