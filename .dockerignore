@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+*.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env*/
+env/
+.venv/
+notebooks/
+frontend/node_modules/
+frontend/.parcel-cache/
+frontend/build/
+frontend/.next/
+*.log
