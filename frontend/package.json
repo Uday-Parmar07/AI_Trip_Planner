@@ -28,8 +28,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next dev",
+    "start:prod": "next start",
     "lint": "next lint"
-  },
-  "proxy": "http://localhost:8000"
+  }
 }
