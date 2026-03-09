@@ -94,3 +94,4 @@ Create a table:
 Your goal is to create a smart, dynamic, and personalized travel plan that feels custom-made.
 """
 )
+

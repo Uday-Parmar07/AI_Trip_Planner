@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.8);
+  --card-foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --primary: #0ea5e9;
+  --primary-foreground: #f0f9ff;
+  --secondary: #14b8a6;
+  --secondary-foreground: #f0fdfa;
+  --accent: #f59e0b;
+  --accent-foreground: #451a03;
+  --ring: #0ea5e9;
+  --border: rgba(148, 163, 184, 0.35);
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --card: rgba(15, 23, 42, 0.75);
+  --card-foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --primary: #38bdf8;
+  --primary-foreground: #082f49;
+  --secondary: #2dd4bf;
+  --secondary-foreground: #042f2e;
+  --accent: #fbbf24;
+  --accent-foreground: #451a03;
+  --ring: #38bdf8;
+  --border: rgba(148, 163, 184, 0.28);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 20%, rgba(20, 184, 166, 0.14), transparent 35%),
+    radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.22), transparent 40%),
+    var(--background);
+  color: var(--foreground);
+}
+
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}

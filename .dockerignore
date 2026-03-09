@@ -14,3 +14,4 @@ frontend/.parcel-cache/
 frontend/build/
 frontend/.next/
 *.log
+env
