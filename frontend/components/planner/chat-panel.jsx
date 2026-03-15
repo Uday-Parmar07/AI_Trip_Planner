@@ -16,7 +16,7 @@ export function ChatPanel({ initialMessages, suggestionChips }) {
 
   const responseCount = useMemo(() => messages.filter((message) => message.role === "assistant").length, [messages]);
 
-  const sendMessage = (content) => {
+  const sendMessage = async (content) => {
     if (!content.trim()) return;
 
     const prompt = content.trim();
@@ -25,17 +25,42 @@ export function ChatPanel({ initialMessages, suggestionChips }) {
     setInput("");
     setIsLoadingResponse(true);
 
-    window.setTimeout(() => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/query`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: prompt })
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+
+      const data = await res.json();
+
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Applied: "${prompt}". I updated your plan with smarter sequencing, realistic travel-time gaps, and better local recommendations.`
+          content: data.answer
         }
       ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Sorry, I couldn't reach the AI assistant right now. Please make sure the backend server is running on port 8000 and try again."
+        }
+      ]);
+    } finally {
       setIsLoadingResponse(false);
-    }, 1000);
+    }
   };
 
   return (
