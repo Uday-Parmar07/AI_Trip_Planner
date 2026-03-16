@@ -25,6 +25,14 @@ export function HeroSection() {
   const [travelStyle, setTravelStyle] = useState("Adventure");
   const [travelers, setTravelers] = useState(2);
 
+  const handleClear = () => {
+    setDestination("");
+    setTravelDates("");
+    setBudget(2500);
+    setTravelStyle("Adventure");
+    setTravelers(2);
+  };
+
   const onSubmit = (event) => {
     event.preventDefault();
 
@@ -133,9 +141,20 @@ export function HeroSection() {
               </label>
             </div>
 
-            <Button size="lg" className="w-full md:w-auto">
-              Generate Trip
-            </Button>
+            <div className="flex gap-3">
+              <Button type="submit" size="lg" className="w-full md:w-auto">
+                Generate Trip
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={handleClear}
+              >
+                Clear
+              </Button>
+            </div>
           </form>
         </Card>
 
