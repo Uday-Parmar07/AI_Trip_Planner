@@ -9,14 +9,12 @@
     "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js",
-      "static/css/app/page.css"
+      "static/chunks/app/page.js"
     ],
-    "/planner/page": [
+    "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/planner/page.css",
-      "static/chunks/app/planner/page.js"
+      "static/chunks/app/dashboard/page.js"
     ]
   }
 }
