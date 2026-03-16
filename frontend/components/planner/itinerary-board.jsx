@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Clock3, MapPin, Route } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function SortableItem({ item, isActive, onSelect }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
@@ -52,7 +53,39 @@ function SortableItem({ item, isActive, onSelect }) {
   );
 }
 
-export function ItineraryBoard({ itinerary, setItinerary, selectedPlaceId, onSelectPlace }) {
+/**
+ * Skeleton placeholder shown while the AI trip plan is being generated.
+ */
+function ItinerarySkeleton() {
+  return (
+    <div className="space-y-6">
+      {[1, 2, 3].map((day) => (
+        <div key={day}>
+          <Skeleton className="mb-3 h-5 w-20" />
+          <div className="space-y-3">
+            {[1, 2].map((item) => (
+              <div key={item} className="rounded-2xl border bg-white/80 p-4 dark:bg-slate-900/80">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="mb-3 h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+                <div className="mt-3 flex gap-4">
+                  <Skeleton className="h-3 w-10" />
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ItineraryBoard({ itinerary, setItinerary, selectedPlaceId, onSelectPlace, isLoading = false }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const itemToDayMap = useMemo(() => {
@@ -92,33 +125,39 @@ export function ItineraryBoard({ itinerary, setItinerary, selectedPlaceId, onSel
     <Card>
       <CardHeader className="border-b pb-4">
         <CardTitle className="text-lg">Generated Itinerary</CardTitle>
-        <p className="text-sm text-[var(--muted-foreground)]">Drag activity cards to reorder each day.</p>
+        <p className="text-sm text-[var(--muted-foreground)]">
+          {isLoading ? "Generating your personalised itinerary…" : "Drag activity cards to reorder each day."}
+        </p>
       </CardHeader>
       <CardContent className="space-y-6 p-4 sm:p-6">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          {itinerary.map((day, dayIndex) => (
-            <motion.section
-              key={day.day}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: dayIndex * 0.06 }}
-            >
-              <h3 className="mb-3 text-base font-semibold">{day.day}</h3>
-              <SortableContext items={day.items.map((item) => item.id)} strategy={rectSortingStrategy}>
-                <div className="space-y-3">
-                  {day.items.map((item) => (
-                    <SortableItem
-                      key={item.id}
-                      item={item}
-                      isActive={selectedPlaceId === item.id}
-                      onSelect={onSelectPlace}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </motion.section>
-          ))}
-        </DndContext>
+        {isLoading ? (
+          <ItinerarySkeleton />
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            {itinerary.map((day, dayIndex) => (
+              <motion.section
+                key={day.day}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: dayIndex * 0.06 }}
+              >
+                <h3 className="mb-3 text-base font-semibold">{day.day}</h3>
+                <SortableContext items={day.items.map((item) => item.id)} strategy={rectSortingStrategy}>
+                  <div className="space-y-3">
+                    {day.items.map((item) => (
+                      <SortableItem
+                        key={item.id}
+                        item={item}
+                        isActive={selectedPlaceId === item.id}
+                        onSelect={onSelectPlace}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </motion.section>
+            ))}
+          </DndContext>
+        )}
       </CardContent>
     </Card>
   );

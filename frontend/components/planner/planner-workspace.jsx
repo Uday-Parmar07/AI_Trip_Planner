@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { SiteNav } from "@/components/layout/site-nav";
 import { Badge } from "@/components/ui/badge";
@@ -9,20 +9,128 @@ import { ItineraryBoard } from "@/components/planner/itinerary-board";
 import { MapView } from "@/components/planner/map-view";
 import { BudgetPanel } from "@/components/planner/budget-panel";
 import { ExportActions } from "@/components/planner/export-actions";
-import { initialItinerary, initialMessages, suggestionChips } from "@/lib/planner-data";
+import { initialItinerary, suggestionChips } from "@/lib/planner-data";
+import { parseItinerary } from "@/lib/parse-itinerary";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+async function fetchTripPlan(question, tripDetails) {
+  const res = await fetch(`${API_BASE}/api/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, tripDetails })
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return data.answer;
+}
 
 export function PlannerWorkspace({ searchParams }) {
   const [itinerary, setItinerary] = useState(initialItinerary);
   const [selectedPlaceId, setSelectedPlaceId] = useState(initialItinerary[0].items[0].id);
   const [budget, setBudget] = useState(Number(searchParams?.budget || 3200));
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [initialChatMessages, setInitialChatMessages] = useState([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: "I can help you craft a balanced trip with local food spots, hidden gems, and optimised routes. Tell me what you want to tune first."
+    }
+  ]);
 
   const destination = searchParams?.destination || "Singapore";
   const travelStyle = searchParams?.travelStyle || "Adventure";
   const travelers = searchParams?.travelers || "2";
+  const travelDates = searchParams?.travelDates || "";
+  const hasGeneratedRef = useRef(false);
+
+  const tripDetails = useMemo(
+    () => ({
+      destination,
+      travelDates,
+      budget: String(budget),
+      tripType: travelStyle,
+      numberOfPeople: Number(travelers)
+    }),
+    [destination, travelDates, budget, travelStyle, travelers]
+  );
 
   const headerTags = useMemo(
     () => [destination, `${travelers} travelers`, travelStyle, `Budget $${budget.toLocaleString()}`],
     [destination, travelers, travelStyle, budget]
+  );
+
+  // Build the initial trip question from search params
+  const initialQuestion = useMemo(() => {
+    const parts = [`Plan a trip to ${destination}`];
+    if (travelDates) parts.push(`on ${travelDates}`);
+    parts.push(`for ${travelers} traveler${Number(travelers) !== 1 ? "s" : ""}`);
+    parts.push(`with a ${travelStyle.toLowerCase()} style`);
+    parts.push(`and a budget of $${Number(budget).toLocaleString()}`);
+    return parts.join(", ") + ".";
+  }, [destination, travelDates, travelers, travelStyle, budget]);
+
+  // Generate the trip plan from the backend when the planner first loads.
+  // Intentionally runs only once: search-params are baked in at mount time and
+  // the page is fully re-created when the user navigates with different params.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (hasGeneratedRef.current) return;
+    hasGeneratedRef.current = true;
+
+    setIsGenerating(true);
+    setInitialChatMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: `Generating your personalised trip to ${destination}…`
+      }
+    ]);
+
+    fetchTripPlan(initialQuestion, tripDetails)
+      .then((answer) => {
+        // Try to parse the AI response into structured itinerary cards
+        const parsed = parseItinerary(answer);
+        if (parsed && parsed.length > 0) {
+          setItinerary(parsed);
+          setSelectedPlaceId(parsed[0].items[0]?.id ?? null);
+        }
+
+        // Show the AI answer in the chat panel as the initial assistant message
+        setInitialChatMessages([
+          {
+            id: "trip-plan",
+            role: "assistant",
+            content: answer
+          }
+        ]);
+      })
+      .catch(() => {
+        // Fall back to the static demo itinerary if the backend is unavailable
+        setInitialChatMessages([
+          {
+            id: "fallback",
+            role: "assistant",
+            content:
+              "I couldn't reach the trip planning service right now. Showing you a sample itinerary. You can still refine it using the chat below."
+          }
+        ]);
+      })
+      .finally(() => setIsGenerating(false));
+  }, []); // Run only on mount – see comment above
+
+  // Handler passed to ChatPanel so follow-up messages also hit the real API
+  const handleSendMessage = useCallback(
+    async (userMessage) => {
+      const answer = await fetchTripPlan(userMessage, tripDetails);
+      const parsed = parseItinerary(answer);
+      if (parsed && parsed.length > 0) {
+        setItinerary(parsed);
+        setSelectedPlaceId(parsed[0].items[0]?.id ?? null);
+      }
+      return answer;
+    },
+    [tripDetails]
   );
 
   return (
@@ -42,12 +150,18 @@ export function PlannerWorkspace({ searchParams }) {
         </motion.div>
 
         <section className="grid gap-6 xl:grid-cols-2">
-          <ChatPanel initialMessages={initialMessages} suggestionChips={suggestionChips} />
+          <ChatPanel
+            initialMessages={initialChatMessages}
+            suggestionChips={suggestionChips}
+            isGenerating={isGenerating}
+            onSendMessage={handleSendMessage}
+          />
           <ItineraryBoard
             itinerary={itinerary}
             setItinerary={setItinerary}
             selectedPlaceId={selectedPlaceId}
             onSelectPlace={setSelectedPlaceId}
+            isLoading={isGenerating}
           />
         </section>
 

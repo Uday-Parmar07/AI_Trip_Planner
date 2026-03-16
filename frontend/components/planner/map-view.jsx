@@ -20,7 +20,11 @@ export function MapView({ itinerary, selectedPlaceId, onSelectPlace }) {
 
   const places = useMemo(() => itinerary.flatMap((day) => day.items), [itinerary]);
 
+  // Only places that have valid coordinates can be shown on the map
+  const mappablePlaces = useMemo(() => places.filter((p) => Array.isArray(p.location)), [places]);
+
   const selectedPlace = places.find((place) => place.id === (openPopupId || selectedPlaceId)) || places[0];
+  const selectedIsMappable = selectedPlace && Array.isArray(selectedPlace.location);
 
   const hasMapboxToken = Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
 
@@ -38,7 +42,7 @@ export function MapView({ itinerary, selectedPlaceId, onSelectPlace }) {
               initialViewState={{ longitude: 103.85, latitude: 1.29, zoom: 11.5 }}
               mapStyle="mapbox://styles/mapbox/light-v11"
             >
-              {places.map((place) => {
+              {mappablePlaces.map((place) => {
                 const Icon = typeIcon[place.type] || MapPin;
                 const isActive = selectedPlaceId === place.id;
 
@@ -61,7 +65,7 @@ export function MapView({ itinerary, selectedPlaceId, onSelectPlace }) {
                 );
               })}
 
-              {selectedPlace && (
+              {selectedIsMappable && (
                 <Popup
                   longitude={selectedPlace.location[0]}
                   latitude={selectedPlace.location[1]}

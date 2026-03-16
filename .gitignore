@@ -23,3 +23,5 @@ frontend/build/
 # Package lock files (optional - you may want to track these)
 # package-lock.json
 # yarn.lock
+# Next.js build output
+frontend/.next/
